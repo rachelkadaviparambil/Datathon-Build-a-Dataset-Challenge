@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bethancourt Ballroom Outlet Availability | TAMU Datathon</title>
+  <!-- Google Fonts & Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- PeerJS CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0b070a;
+      --card-bg: rgba(26, 15, 22, 0.85);
+      --maroon-accent: #500000;
+      --gold: #d4af37;
+      --gold-hover: #f3e5ab;
+      --color-available: #10b981; /* Green */
+      --color-unavailable: #ef4444; /* Red */
+      --color-unpluggable: #18181b; /* Black */
+      --border-unpluggable: #ef4444; /* Red Outline */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(80, 0, 0, 0.4) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(15, 10, 14, 0.95) 0%, #050304 100%);
+      color: #f3f4f6;
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 90px;
+    }
+
+    /* Header */
+    header {
+      background: rgba(15, 10, 14, 0.9);
+      border-bottom: 2px solid var(--gold);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .brand-title i {
+      color: var(--gold);
+      font-size: 1.5rem;
+    }
+
+    .brand-title h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.2rem;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .brand-title p {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    /* Stacked Header Right Controls */
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+    }
+
+    /* Side-by-Side Row for Scroll-to-Top, Active Users & Admin Button */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Scroll to Top Button (Left of Active Users) */
+    .scroll-top-btn {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.3rem 0.55rem;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      height: 26px;
+      transition: all 0.25s ease;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .scroll-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .scroll-top-btn:hover {
+      background: var(--gold);
+      color: #000;
+      transform: translateY(-1px);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+
+    .presence-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--color-available);
+      color: var(--color-available);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      height: 26px;
+    }
+
+    .presence-badge .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--color-available);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--color-available);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .admin-btn {
+      background: linear-gradient(135deg, var(--gold), #b8860b);
+      color: #000;
+      font-weight: 700;
+      border: none;
+      padding: 0.3rem 0.65rem;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+      height: 26px;
+    }
+
+    .admin-btn:hover {
+      background: var(--gold-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+    }
+
+    .admin-btn.logged-in {
+      background: #dc2626;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(220, 38, 38, 0.4);
+    }
+
+    .clock-display {
+      text-align: right;
+    }
+
+    .clock-date {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .clock-time {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1.1;
+    }
+
+    .clock-updated {
+      font-size: 0.65rem;
+      color: #9ca3af;
+    }
+
+    .clock-updated span {
+      color: #d1d5db;
+      font-weight: 600;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1750px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      width: 100%;
+    }
+
+    /* Compact Unified Ballroom Map Section */
+    .room-map-section {
+      background: rgba(18, 11, 16, 0.95);
+      border: 1px solid var(--gold);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .map-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+      padding-bottom: 0.25rem;
+    }
+
+    .map-header h2 {
+      font-family: 'Cinzel', serif;
+      color: var(--gold);
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .map-rows-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: max-content;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .map-label-banner {
+      width: 100%;
+      text-align: center;
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: rgba(80, 0, 0, 0.35);
+      border: 1px dashed rgba(212, 175, 55, 0.4);
+      border-radius: 4px;
+      padding: 0.4rem 0;
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Fixed 25-Column Symmetrical Layout */
+    .map-row {
+      display: grid;
+      grid-template-columns: 48px repeat(11, 34px) 38px repeat(11, 34px) 48px;
+      gap: 3px;
+      align-items: center;
+      justify-items: center;
+      width: max-content;
+    }
+
+    .map-row-label {
+      width: 100%;
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-align: center;
+      background: rgba(80, 0, 0, 0.45);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 4px;
+      padding: 4px 1px;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .map-row-label:hover {
+      background: var(--gold);
+      color: #000;
+      transform: scale(1.08);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+    }
+
+    .map-table-spacer {
+      width: 34px;
+      height: 32px;
+    }
+
+    .map-center-aisle {
+      width: 100%;
+      height: 100%;
+      background: rgba(212, 175, 55, 0.04);
+      border-left: 1px dashed rgba(212, 175, 55, 0.2);
+      border-right: 1px dashed rgba(212, 175, 55, 0.2);
+      border-radius: 2px;
+    }
+
+    .map-table-pair {
+      background: rgba(30, 20, 26, 0.9);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 4px;
+      padding: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      width: 34px;
+      height: 32px;
+      justify-content: center;
+    }
+
+    .map-table-pair:hover {
+      border-color: var(--gold);
+      transform: scale(1.18);
+      background: rgba(50, 30, 42, 0.95);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+      z-index: 10;
+    }
+
+    .map-table-box {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .map-outlets-mini {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5px;
+      width: 22px;
+      height: 10px;
+    }
+
+    .mini-dot {
+      width: 100%;
+      height: 100%;
+      border-radius: 1.5px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    .mini-dot:hover {
+      transform: scale(1.35);
+      z-index: 15;
+      filter: brightness(1.25);
+    }
+
+    .mini-dot.available { background-color: var(--color-available); }
+    .mini-dot.unavailable { background-color: var(--color-unavailable); }
+    .mini-dot.unpluggable { 
+      background-color: var(--color-unpluggable);
+      border: 1px solid var(--border-unpluggable);
+    }
+
+    .mini-dot.unpluggable::after {
+      content: "⚡";
+      font-size: 6px;
+      color: #ef4444;
+      line-height: 1;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .map-divider {
+      width: 80%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* 1. Primary Heading: Exactly Matched to Ballroom Floor Map Overview */
+    .primary-section-heading {
+      font-family: 'Cinzel', serif;
+      color: var(--gold);
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+      margin: 1.75rem 0 0.8rem 0;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* 2. Side Headings: Smaller than Detailed Controls */
+    .section-main-heading {
+      font-family: 'Cinzel', serif;
+      color: #f3e5ab;
+      font-size: 0.85rem;
+      margin: 1.1rem 0 0.6rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px dashed rgba(212, 175, 55, 0.25);
+      padding-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 3. Row Groupings: Smallest Sub-headings */
+    .sub-heading-group {
+      font-family: 'Cinzel', serif;
+      color: #d1d5db;
+      font-size: 0.75rem;
+      margin: 0.75rem 0 0.5rem 0;
+      padding: 0.25rem 0.5rem;
+      background: rgba(80, 0, 0, 0.35);
+      border-left: 3px solid var(--gold);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.3s ease;
+    }
+
+    .sub-heading-group.highlight-row {
+      border-left-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.2);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+      color: #fff;
+    }
+
+    .ballroom-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .table-pair-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 10px;
+      padding: 0.6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+    }
+
+    .table-pair-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+    }
+
+    .table-pair-card.highlighted {
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      transform: scale(1.04);
+    }
+
+    .table-half {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.3rem 0;
+    }
+
+    .table-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+      margin: 0.2rem 0;
+    }
+
+    .table-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.5px;
+    }
+
+    .outlet-grid-1x2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 80px;
+      height: 38px;
+      padding: 5px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .outlet-cell {
+      border-radius: 3px;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+      position: relative;
+      height: 100%;
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .outlet-cell:hover {
+      transform: scale(1.12);
+      z-index: 2;
+    }
+
+    .outlet-cell.available {
+      background-color: var(--color-available);
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+    }
+
+    .outlet-cell.unavailable {
+      background-color: var(--color-unavailable);
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
+
+    .outlet-cell.unpluggable {
+      background-color: var(--color-unpluggable);
+      border: 1px solid var(--border-unpluggable);
+      cursor: not-allowed;
+    }
+
+    .outlet-cell.unpluggable.admin-editable {
+      cursor: pointer;
+    }
+
+    .outlet-cell.unpluggable::after {
+      content: "⚡";
+      font-size: 10px;
+      color: #ef4444;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.9;
+    }
+
+    /* Fixed Bottom Left Legend */
+    .legend-box {
+      position: fixed;
+      bottom: 0.75rem;
+      left: 0.75rem;
+      background: rgba(15, 10, 14, 0.95);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .legend-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .legend-items {
+      display: flex;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      color: #d1d5db;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .legend-color.available { background: var(--color-available); }
+    .legend-color.unavailable { background: var(--color-unavailable); }
+    .legend-color.unpluggable { 
+      background: var(--color-unpluggable); 
+      border: 1px solid var(--border-unpluggable);
+    }
+    .legend-color.unpluggable::after {
+      content: "⚡";
+      font-size: 7px;
+      color: #ef4444;
+    }
+
+    /* Admin Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #140d12;
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
+      position: relative;
+    }
+
+    .modal-card h2 {
+      font-family: 'Cinzel', serif;
+      color: var(--gold);
+      margin-bottom: 1.25rem;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    .modal-field {
+      margin-bottom: 0.85rem;
+    }
+
+    .modal-field label {
+      display: block;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+
+    .modal-field input {
+      width: 100%;
+      background: #090507;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .modal-field input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+    }
+
+    .modal-error {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-bottom: 0.75rem;
+      display: none;
+      text-align: center;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1.25rem;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 0.55rem;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .modal-btn-submit {
+      background: var(--gold);
+      color: #000;
+    }
+
+    .modal-btn-submit:hover {
+      background: var(--gold-hover);
+    }
+
+    .modal-btn-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ccc;
+    }
+
+    .modal-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-title">
+      <i class="fa-solid fa-dice"></i>
+      <div>
+        <h1>Bethancourt Ballroom</h1>
+        <p>Memorial Student Center • Texas A&M University</p>
+      </div>
+    </div>
+
+    <!-- Vertically Stacked Header Controls -->
+    <div class="header-right">
+      <!-- 1. Real-time Clock -->
+      <div class="clock-display">
+        <div class="clock-date" id="clockDate">November 8</div>
+        <div class="clock-time" id="clockTime">4:40 AM</div>
+      </div>
+
+      <!-- 2. Last Time Updated -->
+      <div class="clock-updated">Last time updated: <span id="lastUpdated">November 8 | 4:26 AM</span></div>
+
+      <!-- 3. Side-by-Side Controls: Scroll-to-Top, Active Users & Admin Login -->
+      <div class="controls-row">
+        <button class="scroll-top-btn" id="scrollTopBtn" onclick="scrollToMapTop()" title="Scroll back to Top Map">
+          <i class="fa-solid fa-arrow-up"></i> Top
+        </button>
+
+        <div class="presence-badge">
+          <span class="pulse-dot"></span>
+          <span id="activeUserCount">Active Users: 1</span>
+        </div>
+
+        <button class="admin-btn" id="adminBtn" onclick="handleAdminToggle()">
+          <i class="fa-solid fa-lock"></i> <span id="adminBtnText">Admin Login</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    
+    <!-- Unified Ballroom Floor Map -->
+    <section class="room-map-section" id="ballroomMapSection">
+      <div class="map-header">
+        <h2><i class="fa-solid fa-map-location-dot"></i> Ballroom Floor Map Overview</h2>
+        <span style="font-size: 0.7rem; color: #9ca3af;">Click row labels to jump • Click tables to scroll</span>
+      </div>
+
+      <div class="map-rows-wrapper" id="mapUnifiedContainer"></div>
+    </section>
+
+    <!-- Grouped Detailed Controls Container -->
+    <div id="detailedControlsContainer"></div>
+  </main>
+
+  <!-- Legend (Bottom Left) -->
+  <div class="legend-box">
+    <div class="legend-title"><i class="fa-solid fa-plug"></i> Legend</div>
+    <div class="legend-items">
+      <div class="legend-item">
+        <div class="legend-color available"></div>
+        <span>Available</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color unavailable"></div>
+        <span>Unavailable</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color unpluggable"></div>
+        <span>Unpluggable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal-card">
+      <h2><i class="fa-solid fa-shield-halved"></i> Admin Login</h2>
+      <div class="modal-error" id="modalError">Invalid Credentials! Please try again.</div>
+      <form onsubmit="submitAdminLogin(event)">
+        <div class="modal-field">
+          <label for="adminName">Name</label>
+          <input type="text" id="adminName" placeholder="Enter name..." required autocomplete="off" />
+        </div>
+        <div class="modal-field">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" placeholder="Enter password..." required />
+        </div>
+        <div class="modal-field">
+          <label for="adminId">ID Number</label>
+          <input type="text" id="adminId" placeholder="Enter ID number..." required autocomplete="off" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-cancel" onclick="closeAdminModal()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-submit">Authenticate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let isAdmin = false;
+    let outletState = {};
+    const initialTimestampText = "November 8 | 4:26 AM";
+
+    // Row Range Labels
+    const leftRowLabels = ["109–92", "91–70", "48–67", "46–25"];
+    const rightRowLabels = ["127–110", "149–128", "171–150", "24–1"];
+
+    // Left Side Grid Layout
+    const leftSideAlignedRows = [
+      [null, null, ["table 108", "table 109"], ["table 106", "table 107"], ["table 104", "table 105"], ["table 102", "table 103"], ["table 100", "table 101"], ["table 98", "table 99"], ["table 96", "table 97"], ["table 94", "table 95"], ["table 92", "table 93"]],
+      [["table 90", "table 91"], ["table 88", "table 89"], ["table 86", "table 87"], ["table 84", "table 85"], ["table 82", "table 83"], ["table 80", "table 81"], ["table 78", "table 79"], ["table 76", "table 77"], ["table 74", "table 75"], ["table 72", "table 73"], ["table 70", "table 71"]],
+      [["table 48", "table 47"], ["table 50", "table 49"], ["table 52", "table 51"], ["table 54", "table 53"], ["table 56", "table 55"], ["table 58", "table 57"], ["table 60", "table 59"], ["table 62", "table 61"], ["table 64", "table 63"], ["table 66", "table 65"], ["table 68", "table 67"]],
+      [["table 46", "table 45"], ["table 44", "table 43"], ["table 42", "table 41"], ["table 40", "table 39"], ["table 38", "table 37"], ["table 36", "table 35"], ["table 34", "table 33"], ["table 32", "table 31"], ["table 30", "table 29"], ["table 28", "table 27"], ["table 26", "table 25"]]
+    ];
+
+    // Right Side Grid Layout
+    const rightSideAlignedRows = [
+      [["table 126", "table 127"], ["table 124", "table 125"], ["table 122", "table 123"], ["table 120", "table 121"], ["table 118", "table 119"], ["table 116", "table 117"], ["table 114", "table 115"], ["table 112", "table 113"], ["table 110", "table 111"], null, null],
+      [["table 148", "table 149"], ["table 146", "table 147"], ["table 144", "table 145"], ["table 142", "table 143"], ["table 140", "table 141"], ["table 138", "table 139"], ["table 136", "table 137"], ["table 134", "table 135"], ["table 132", "table 133"], ["table 130", "table 131"], ["table 128", "table 129"]],
+      [["table 170", "table 171"], ["table 168", "table 169"], ["table 166", "table 167"], ["table 164", "table 165"], ["table 162", "table 163"], ["table 160", "table 161"], ["table 158", "table 159"], ["table 156", "table 157"], ["table 154", "table 155"], ["table 152", "table 153"], ["table 150", "table 151"]],
+      [["table 24", "table 23"], ["table 22", "table 21"], ["table 20", "table 19"], ["table 18", "table 17"], ["table 16", "table 15"], ["table 14", "table 13"], ["table 12", "table 11"], ["table 10", "table 9"], ["table 8", "table 7"], ["table 6", "table 5"], ["table 4", "table 2"]]
+    ];
+
+    function getCustomOutletDisplay(tableName, outletIndex) {
+      if (tableName === "table 4") return outletIndex === 0 ? "TABLE 4" : "TABLE 3";
+      if (tableName === "table 2") return outletIndex === 0 ? "TABLE 2" : "TABLE 1";
+      return `${tableName.toUpperCase()} - Outlet ${outletIndex + 1}`;
+    }
+
+    const unifiedAlignedRows = leftSideAlignedRows.map((leftRow, idx) => [
+      `LEFT_LABEL_${leftRowLabels[idx]}`,
+      ...leftRow,
+      "AISLE",
+      ...rightSideAlignedRows[idx],
+      `RIGHT_LABEL_${rightRowLabels[idx]}`
+    ]);
+
+    const allTablePairs = [
+      ...leftSideAlignedRows.flatMap(row => row.filter(p => p !== null)),
+      ...rightSideAlignedRows.flatMap(row => row.filter(p => p !== null))
+    ];
+
+    const sheetInitialData = {
+      "table 108": ["available", "available"], "table 109": ["unavailable", "unavailable"],
+      "table 106": ["unavailable", "available"], "table 107": ["available", "available"],
+      "table 104": ["available", "available"], "table 105": ["available", "available"],
+      "table 102": ["available", "available"], "table 103": ["available", "available"],
+      "table 100": ["available", "available"], "table 101": ["available", "available"],
+      "table 98": ["available", "available"], "table 99": ["available", "available"],
+      "table 96": ["available", "available"], "table 97": ["available", "available"],
+      "table 94": ["unavailable", "unavailable"], "table 95": ["available", "available"],
+      "table 92": ["available", "available"], "table 93": ["available", "available"],
+      "table 126": ["available", "unavailable"], "table 127": ["available", "unavailable"],
+      "table 124": ["available", "available"], "table 125": ["available", "available"],
+      "table 122": ["available", "available"], "table 123": ["available", "available"],
+      "table 120": ["available", "available"], "table 121": ["available", "available"],
+      "table 118": ["available", "available"], "table 119": ["available", "available"],
+      "table 116": ["available", "available"], "table 117": ["available", "available"],
+      "table 114": ["available", "available"], "table 115": ["available", "available"],
+      "table 112": ["unavailable", "available"], "table 113": ["unavailable", "unavailable"],
+      "table 110": ["unavailable", "available"], "table 111": ["unavailable", "available"],
+
+      "table 90": ["unavailable", "unavailable"], "table 91": ["unavailable", "unavailable"],
+      "table 88": ["unavailable", "available"], "table 89": ["available", "available"],
+      "table 86": ["available", "available"], "table 87": ["available", "available"],
+      "table 84": ["available", "available"], "table 85": ["available", "available"],
+      "table 82": ["unavailable", "unavailable"], "table 83": ["available", "available"],
+      "table 80": ["unavailable", "available"], "table 81": ["available", "available"],
+      "table 78": ["available", "available"], "table 79": ["available", "available"],
+      "table 76": ["available", "available"], "table 77": ["available", "available"],
+      "table 74": ["available", "available"], "table 75": ["available", "unpluggable"],
+      "table 72": ["available", "unpluggable"], "table 73": ["available", "available"],
+      "table 70": ["unavailable", "available"], "table 71": ["available", "unavailable"],
+      "table 148": ["available", "available"], "table 149": ["available", "available"],
+      "table 146": ["available", "available"], "table 147": ["unpluggable", "available"],
+      "table 144": ["unpluggable", "available"], "table 145": ["available", "available"],
+      "table 142": ["available", "available"], "table 143": ["available", "available"],
+      "table 140": ["available", "available"], "table 141": ["available", "available"],
+      "table 138": ["available", "available"], "table 139": ["available", "available"],
+      "table 136": ["available", "available"], "table 137": ["available", "available"],
+      "table 134": ["available", "available"], "table 135": ["available", "available"],
+      "table 132": ["available", "available"], "table 133": ["available", "available"],
+      "table 130": ["available", "available"], "table 131": ["available", "available"],
+      "table 128": ["unavailable", "unavailable"], "table 129": ["available", "available"],
+
+      "table 48": ["available", "available"], "table 47": ["available", "available"],
+      "table 50": ["available", "available"], "table 49": ["available", "available"],
+      "table 52": ["unavailable", "unavailable"], "table 51": ["available", "unavailable"],
+      "table 54": ["available", "available"], "table 53": ["available", "available"],
+      "table 56": ["available", "available"], "table 55": ["available", "available"],
+      "table 58": ["available", "available"], "table 57": ["available", "available"],
+      "table 60": ["unavailable", "available"], "table 59": ["available", "available"],
+      "table 62": ["available", "available"], "table 61": ["available", "available"],
+      "table 64": ["unavailable", "unpluggable"], "table 63": ["available", "available"],
+      "table 66": ["available", "available"], "table 65": ["available", "unpluggable"],
+      "table 68": ["available", "available"], "table 67": ["available", "available"],
+      "table 170": ["available", "available"], "table 171": ["unavailable", "available"],
+      "table 168": ["unpluggable", "available"], "table 169": ["available", "available"],
+      "table 166": ["unpluggable", "available"], "table 167": ["available", "available"],
+      "table 164": ["available", "available"], "table 165": ["available", "available"],
+      "table 162": ["available", "available"], "table 163": ["available", "available"],
+      "table 160": ["available", "available"], "table 161": ["available", "available"],
+      "table 158": ["available", "available"], "table 159": ["available", "available"],
+      "table 156": ["available", "available"], "table 157": ["available", "available"],
+      "table 154": ["available", "available"], "table 155": ["available", "available"],
+      "table 152": ["available", "available"], "table 153": ["available", "available"],
+      "table 150": ["available", "available"], "table 151": ["available", "available"],
+
+      "table 46": ["available", "available"], "table 45": ["unavailable", "available"],
+      "table 44": ["available", "available"], "table 43": ["available", "available"],
+      "table 42": ["available", "available"], "table 41": ["available", "available"],
+      "table 40": ["available", "available"], "table 39": ["available", "available"],
+      "table 38": ["available", "available"], "table 37": ["available", "available"],
+      "table 36": ["available", "available"], "table 35": ["available", "available"],
+      "table 34": ["unavailable", "available"], "table 33": ["unavailable", "available"],
+      "table 32": ["available", "available"], "table 31": ["available", "available"],
+      "table 30": ["unavailable", "unavailable"], "table 29": ["available", "unpluggable"],
+      "table 28": ["unavailable", "available"], "table 27": ["available", "unpluggable"],
+      "table 26": ["available", "available"], "table 25": ["available", "available"],
+      "table 24": ["available", "available"], "table 23": ["unavailable", "available"],
+      "table 22": ["available", "available"], "table 21": ["unpluggable", "available"],
+      "table 20": ["unpluggable", "available"], "table 19": ["available", "available"],
+      "table 18": ["available", "available"], "table 17": ["available", "available"],
+      "table 16": ["available", "available"], "table 15": ["available", "available"],
+      "table 14": ["available", "available"], "table 13": ["available", "available"],
+      "table 12": ["available", "available"], "table 11": ["unavailable", "available"],
+      "table 10": ["unavailable", "available"], "table 9": ["unavailable", "unavailable"],
+      "table 8": ["available", "available"], "table 7": ["available", "available"],
+      "table 6": ["available", "available"], "table 5": ["available", "available"],
+      "table 4": ["available", "available"], "table 2": ["available", "available"]
+    };
+
+    function generateInitialDataset() {
+      const data = {};
+      allTablePairs.forEach(pair => {
+        pair.forEach(tableName => {
+          const sheetStatus = sheetInitialData[tableName] || ["available", "available"];
+          data[tableName] = [sheetStatus[0], sheetStatus[1]];
+        });
+      });
+      return data;
+    }
+
+    // PeerJS WebRTC Implementation
+    const ROOM_HOST_ID = "tamu-bethancourt-ballroom-outlets-v1";
+    let peer = null;
+    let connections = [];
+    let isHost = false;
+
+    function initWebRTC() {
+      outletState = generateInitialDataset();
+
+      peer = new Peer(ROOM_HOST_ID);
+
+      peer.on('open', () => {
+        isHost = true;
+        updateUserCountBadge(1);
+        renderRoomMap();
+        renderGroupedGrid();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          peer = new Peer();
+          peer.on('open', () => {
+            const conn = peer.connect(ROOM_HOST_ID);
+            setupClientConnection(conn);
+          });
+        }
+      });
+
+      peer.on('connection', (conn) => {
+        if (isHost) {
+          connections.push(conn);
+          updateUserCountBadge(connections.length + 1);
+
+          conn.on('open', () => {
+            conn.send({
+              type: 'INIT_STATE',
+              outletState: outletState,
+              lastUpdated: document.getElementById('lastUpdated').textContent
+            });
+          });
+
+          conn.on('data', (data) => {
+            if (data.type === 'UPDATE_OUTLET') {
+              outletState[data.tableName][data.index] = data.nextStatus;
+              const formattedTimestamp = getFormattedTimestamp();
+              document.getElementById('lastUpdated').textContent = formattedTimestamp;
+              renderTableOutlets(data.tableName);
+              renderRoomMap();
+              broadcastStateUpdate(data.tableName, data.index, data.nextStatus, formattedTimestamp);
+            }
+          });
+
+          conn.on('close', () => {
+            connections = connections.filter(c => c !== conn);
+            updateUserCountBadge(connections.length + 1);
+          });
+        }
+      });
+    }
+
+    function setupClientConnection(conn) {
+      conn.on('open', () => {
+        connections = [conn];
+      });
+
+      conn.on('data', (data) => {
+        if (data.type === 'INIT_STATE') {
+          outletState = data.outletState;
+          document.getElementById('lastUpdated').textContent = data.lastUpdated;
+          renderRoomMap();
+          renderGroupedGrid();
+        } else if (data.type === 'UPDATE_OUTLET') {
+          outletState[data.tableName][data.index] = data.nextStatus;
+          document.getElementById('lastUpdated').textContent = data.lastUpdated;
+          renderTableOutlets(data.tableName);
+          renderRoomMap();
+        } else if (data.type === 'USER_COUNT') {
+          updateUserCountBadge(data.count);
+        }
+      });
+    }
+
+    function broadcastStateUpdate(tableName, index, nextStatus, timestamp) {
+      const payload = {
+        type: 'UPDATE_OUTLET',
+        tableName,
+        index,
+        nextStatus,
+        lastUpdated: timestamp
+      };
+
+      connections.forEach(conn => {
+        if (conn.open) conn.send(payload);
+      });
+    }
+
+    function updateUserCountBadge(count) {
+      document.getElementById("activeUserCount").textContent = `Active Users: ${count}`;
+      if (isHost) {
+        connections.forEach(conn => {
+          if (conn.open) conn.send({ type: 'USER_COUNT', count: count });
+        });
+      }
+    }
+
+    function getFormattedTimestamp() {
+      const now = new Date();
+      const monthNames = ["January", "February", "March", "April", "May", "June", 
+                          "July", "August", "September", "October", "November", "December"];
+      const month = monthNames[now.getMonth()];
+      const day = now.getDate();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${month} ${day} | ${hours}:${minutes} ${ampm}`;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const monthNames = ["January", "February", "March", "April", "May", "June", 
+                          "July", "August", "September", "October", "November", "December"];
+      const month = monthNames[now.getMonth()];
+      const day = now.getDate();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+
+      document.getElementById('clockDate').textContent = `${month} ${day}`;
+      document.getElementById('clockTime').textContent = `${hours}:${minutes} ${ampm}`;
+    }
+
+    function renderMapMiniDots(tableName) {
+      const statuses = outletState[tableName] || ['available', 'available'];
+      return statuses.map((status, idx) => `
+        <div 
+          class="mini-dot ${status}" 
+          title="${getCustomOutletDisplay(tableName, idx)}: ${status.toUpperCase()} (Click to toggle)"
+          onclick="event.stopPropagation(); handleOutletClick('${tableName}', ${idx});">
+        </div>
+      `).join('');
+    }
+
+    function renderRoomMap() {
+      const container = document.getElementById('mapUnifiedContainer');
+      container.innerHTML = '';
+
+      const topBanner = document.createElement('div');
+      topBanner.className = 'map-label-banner';
+      topBanner.innerHTML = `<i class="fa-solid fa-door-open"></i> Main Entrances`;
+      container.appendChild(topBanner);
+
+      unifiedAlignedRows.forEach(rowPairs => {
+        const rowElem = document.createElement('div');
+        rowElem.className = 'map-row';
+
+        rowPairs.forEach(pair => {
+          if (typeof pair === 'string' && pair.startsWith('LEFT_LABEL_')) {
+            const labelText = pair.replace('LEFT_LABEL_', '');
+            const labelElem = document.createElement('div');
+            labelElem.className = 'map-row-label';
+            labelElem.textContent = labelText;
+            labelElem.title = `Click to jump to Left Side Row ${labelText}`;
+            labelElem.onclick = () => scrollToRowGroup(`heading-left-${labelText.replace('–', '-')}`);
+            rowElem.appendChild(labelElem);
+            return;
+          }
+
+          if (typeof pair === 'string' && pair.startsWith('RIGHT_LABEL_')) {
+            const labelText = pair.replace('RIGHT_LABEL_', '');
+            const labelElem = document.createElement('div');
+            labelElem.className = 'map-row-label';
+            labelElem.textContent = labelText;
+            labelElem.title = `Click to jump to Right Side Row ${labelText}`;
+            labelElem.onclick = () => scrollToRowGroup(`heading-right-${labelText.replace('–', '-')}`);
+            rowElem.appendChild(labelElem);
+            return;
+          }
+
+          if (pair === "AISLE") {
+            const aisleElem = document.createElement('div');
+            aisleElem.className = 'map-center-aisle';
+            rowElem.appendChild(aisleElem);
+            return;
+          }
+
+          if (pair === null) {
+            const spacer = document.createElement('div');
+            spacer.className = 'map-table-spacer';
+            rowElem.appendChild(spacer);
+            return;
+          }
+
+          const topTable = pair[0];
+          const botTable = pair[1];
+
+          const pairElem = document.createElement('div');
+          pairElem.className = 'map-table-pair';
+          
+          let pairTitle = `Table Pair: ${topTable.toUpperCase()} / ${botTable.toUpperCase()}`;
+          if (topTable === "table 4" && botTable === "table 2") {
+            pairTitle = `Table Group: TABLES 4 / 3 / 2 / 1`;
+          }
+
+          pairElem.title = `${pairTitle} (Click background to scroll to details)`;
+          pairElem.onclick = () => scrollToCard(topTable, botTable);
+
+          pairElem.innerHTML = `
+            <div class="map-table-box">
+              <div class="map-outlets-mini">
+                ${renderMapMiniDots(topTable)}
+              </div>
+            </div>
+            <div class="map-divider"></div>
+            <div class="map-table-box">
+              <div class="map-outlets-mini">
+                ${renderMapMiniDots(botTable)}
+              </div>
+            </div>
+          `;
+
+          rowElem.appendChild(pairElem);
+        });
+
+        container.appendChild(rowElem);
+      });
+
+      const bottomBanner = document.createElement('div');
+      bottomBanner.className = 'map-label-banner';
+      bottomBanner.style.marginTop = '4px';
+      bottomBanner.innerHTML = `<i class="fa-solid fa-video"></i> Projectors`;
+      container.appendChild(bottomBanner);
+    }
+
+    function getHeaderOffset() {
+      const header = document.querySelector('header');
+      return header ? header.offsetHeight + 10 : 80;
+    }
+
+    function scrollToCard(topTable, botTable) {
+      const cardId = `card-${topTable.replace(/\s+/g, '-')}`;
+      const card = document.getElementById(cardId);
+      if (card) {
+        const headerOffset = getHeaderOffset();
+        const elementPosition = card.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+
+        card.classList.add('highlighted');
+        setTimeout(() => card.classList.remove('highlighted'), 2000);
+      }
+    }
+
+    function scrollToRowGroup(headingId) {
+      const heading = document.getElementById(headingId);
+      if (heading) {
+        const headerOffset = getHeaderOffset();
+        const elementPosition = heading.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+
+        heading.classList.add('highlight-row');
+        setTimeout(() => heading.classList.remove('highlight-row'), 2000);
+      }
+    }
+
+    function scrollToMapTop() {
+      // Direct window scroll to smooth past the sticky header to absolute top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function setupScrollTopListener() {
+      const btn = document.getElementById('scrollTopBtn');
+
+      window.addEventListener('scroll', () => {
+        if (!btn) return;
+        
+        const targetElem = document.getElementById('detailedControlsHeading');
+        if (targetElem) {
+          const rect = targetElem.getBoundingClientRect();
+          if (rect.top <= 200) {
+            btn.classList.add('visible');
+          } else {
+            btn.classList.remove('visible');
+          }
+        } else {
+          if (window.scrollY > 350) {
+            btn.classList.add('visible');
+          } else {
+            btn.classList.remove('visible');
+          }
+        }
+      });
+    }
+
+    function renderGroupedGrid() {
+      const container = document.getElementById('detailedControlsContainer');
+      container.innerHTML = '';
+
+      // 0. MAIN OVERARCHING DETAILED CONTROLS HEADING
+      const mainDetailedHeading = document.createElement('div');
+      mainDetailedHeading.className = 'primary-section-heading';
+      mainDetailedHeading.id = 'detailedControlsHeading';
+      mainDetailedHeading.innerHTML = `<i class="fa-solid fa-sliders"></i> Detailed Table Outlet Controls`;
+      container.appendChild(mainDetailedHeading);
+
+      // 1. LEFT SIDE MAIN SECTION
+      const leftMainHeading = document.createElement('div');
+      leftMainHeading.className = 'section-main-heading';
+      leftMainHeading.innerHTML = `<i class="fa-solid fa-arrow-left-long"></i> Left Side of Ballroom`;
+      container.appendChild(leftMainHeading);
+
+      leftSideAlignedRows.forEach((row, idx) => {
+        const rowLabelText = leftRowLabels[idx];
+        const headingId = `heading-left-${rowLabelText.replace('–', '-')}`;
+
+        const subHeading = document.createElement('div');
+        subHeading.className = 'sub-heading-group';
+        subHeading.id = headingId;
+        subHeading.innerHTML = `<i class="fa-solid fa-layer-group"></i> Row ${rowLabelText}`;
+        container.appendChild(subHeading);
+
+        const grid = document.createElement('div');
+        grid.className = 'ballroom-grid';
+
+        row.filter(pair => pair !== null).forEach(pair => {
+          grid.appendChild(createTableCard(pair[0], pair[1]));
+        });
+
+        container.appendChild(grid);
+      });
+
+      // 2. RIGHT SIDE MAIN SECTION
+      const rightMainHeading = document.createElement('div');
+      rightMainHeading.className = 'section-main-heading';
+      rightMainHeading.innerHTML = `<i class="fa-solid fa-arrow-right-long"></i> Right Side of Ballroom`;
+      container.appendChild(rightMainHeading);
+
+      rightSideAlignedRows.forEach((row, idx) => {
+        const rowLabelText = rightRowLabels[idx];
+        const headingId = `heading-right-${rowLabelText.replace('–', '-')}`;
+
+        const subHeading = document.createElement('div');
+        subHeading.className = 'sub-heading-group';
+        subHeading.id = headingId;
+        subHeading.innerHTML = `<i class="fa-solid fa-layer-group"></i> Row ${rowLabelText}`;
+        container.appendChild(subHeading);
+
+        const grid = document.createElement('div');
+        grid.className = 'ballroom-grid';
+
+        row.filter(pair => pair !== null).forEach(pair => {
+          grid.appendChild(createTableCard(pair[0], pair[1]));
+        });
+
+        container.appendChild(grid);
+      });
+    }
+
+    function createTableCard(topTable, botTable) {
+      const card = document.createElement('div');
+      card.className = 'table-pair-card';
+      card.id = `card-${topTable.replace(/\s+/g, '-')}`;
+
+      let topLabel1 = topTable.toUpperCase();
+      let botLabel2 = botTable.toUpperCase();
+
+      if (topTable === "table 4" && botTable === "table 2") {
+        topLabel1 = `TABLE 4 & TABLE 3`;
+        botLabel2 = `TABLE 2 & TABLE 1`;
+      }
+
+      card.innerHTML = `
+        <div class="table-half">
+          <div class="table-label">${topLabel1}</div>
+          <div class="outlet-grid-1x2" id="grid-${topTable.replace(/\s+/g, '-')}"></div>
+        </div>
+        <div class="table-divider"></div>
+        <div class="table-half">
+          <div class="table-label">${botLabel2}</div>
+          <div class="outlet-grid-1x2" id="grid-${botTable.replace(/\s+/g, '-')}"></div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        renderTableOutlets(topTable);
+        renderTableOutlets(botTable);
+      }, 0);
+
+      return card;
+    }
+
+    function renderTableOutlets(tableName) {
+      const gridElem = document.getElementById(`grid-${tableName.replace(/\s+/g, '-')}`);
+      if (!gridElem) return;
+      gridElem.innerHTML = '';
+
+      const outlets = outletState[tableName] || Array(2).fill('available');
+
+      outlets.forEach((status, idx) => {
+        const cell = document.createElement('div');
+        cell.className = `outlet-cell ${status}`;
+        if (isAdmin && status === 'unpluggable') {
+          cell.classList.add('admin-editable');
+        }
+
+        cell.title = `${getCustomOutletDisplay(tableName, idx)}: ${status.toUpperCase()}`;
+        cell.onclick = () => handleOutletClick(tableName, idx);
+        gridElem.appendChild(cell);
+      });
+    }
+
+    function handleOutletClick(tableName, index) {
+      const currentStatus = outletState[tableName][index];
+
+      if (currentStatus === 'unpluggable' && !isAdmin) {
+        alert('This outlet is marked as Unpluggable (Power Supply). Only an Administrator can edit it.');
+        return;
+      }
+
+      let nextStatus = currentStatus;
+      if (!isAdmin) {
+        nextStatus = currentStatus === 'available' ? 'unavailable' : 'available';
+      } else {
+        if (currentStatus === 'available') nextStatus = 'unavailable';
+        else if (currentStatus === 'unavailable') nextStatus = 'unpluggable';
+        else if (currentStatus === 'unpluggable') nextStatus = 'available';
+      }
+
+      outletState[tableName][index] = nextStatus;
+      const formattedTimestamp = getFormattedTimestamp();
+      document.getElementById('lastUpdated').textContent = formattedTimestamp;
+
+      renderTableOutlets(tableName);
+      renderRoomMap();
+
+      if (isHost) {
+        broadcastStateUpdate(tableName, index, nextStatus, formattedTimestamp);
+      } else if (connections.length > 0 && connections[0].open) {
+        connections[0].send({
+          type: 'UPDATE_OUTLET',
+          tableName,
+          index,
+          nextStatus
+        });
+      }
+    }
+
+    function handleAdminToggle() {
+      if (isAdmin) {
+        isAdmin = false;
+        document.getElementById('adminBtnText').textContent = 'Admin Login';
+        document.getElementById('adminBtn').classList.remove('logged-in');
+        renderGroupedGrid();
+        renderRoomMap();
+      } else {
+        document.getElementById('adminModal').classList.add('active');
+        document.getElementById('modalError').style.display = 'none';
+      }
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.remove('active');
+    }
+
+    function submitAdminLogin(event) {
+      event.preventDefault();
+      const name = document.getElementById('adminName').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const id = document.getElementById('adminId').value.trim();
+
+      if (name === "Mr. Rev" && password === "Datathon" && id === "2026") {
+        isAdmin = true;
+        document.getElementById('adminBtnText').textContent = 'Admin Logout';
+        document.getElementById('adminBtn').classList.add('logged-in');
+        closeAdminModal();
+        renderGroupedGrid();
+        renderRoomMap();
+        document.getElementById('adminName').value = '';
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminId').value = '';
+      } else {
+        document.getElementById('modalError').style.display = 'block';
+      }
+    }
+
+    // App Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebRTC();
+      updateClock();
+      setInterval(updateClock, 1000);
+      setupScrollTopListener();
+    });
+  </script>
+</body>
+</html>
